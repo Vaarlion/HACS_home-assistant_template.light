@@ -1,0 +1,56 @@
+- name: "Create a custome integration from ansible based source code"
+  hosts: 127.0.0.1
+  connection: local
+  vars:
+    home_assistant_source_path: "../Home-assistant_core"
+    extention_name: template
+
+  tasks:
+    - name: Check if current directory is a git repository
+      ansible.builtin.command:
+        cmd: git status
+      register: git_status
+      changed_when: false
+      failed_when: git_status.rc != 0
+      ignore_errors: true
+
+    - name: Create the git repository for the extention
+      ansible.builtin.command:
+       cmd: git init
+      when: git_status.rc != 0
+
+
+    - name: Create directory structure
+      ansible.builtin.file:
+        dest: ./custom_components
+        state: directory
+        mode: "0755"
+
+    - name: Copy integration from source repository
+      ansible.builtin.copy:
+        src: "{{ home_assistant_source_path }}/homeassistant/components/{{ extention_name }}"
+        dest: ./custom_components/
+        remote_src: true
+
+    - name: Get current HA version
+      ansible.builtin.command:
+        cmd: python -c "import toml; version=(toml.load(open('{{ home_assistant_source_path }}/pyproject.toml'))['project']['version']).split('.')[:3];
+          print('{}.{}.{}'.format(version[0] if int(version[1]) > 1 else int(version[0])-1, int(version[1])-1 if int(version[1]) > 1 else 12, 0))"
+      register: ha_version
+      changed_when: false
+
+    - name: Build hacs.json file
+      ansible.builtin.template:
+        src: hacs.json.jinja
+        dest: hacs.json
+        mode: '0644'
+
+    - name: load manifest.json from file
+      slurp:
+        src: ./custom_components/{{ extention_name }}/manifest.json
+      register: manifest_json
+
+    - name: Add version to manifest.json
+      ansible.builtin.copy:
+        dest: ./custom_components/{{ extention_name }}/manifest.json
+        content: "{{ manifest_json.content | b64decode | from_json | default([]) | combine({'version': ha_version.stdout + '-vaarlion_fix'}) | to_nice_json }}"
