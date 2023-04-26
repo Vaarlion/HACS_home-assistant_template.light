@@ -53,4 +53,4 @@
     - name: Add version to manifest.json
       ansible.builtin.copy:
         dest: ./custom_components/{{ extention_name }}/manifest.json
-        content: "{{ manifest_json.content | b64decode | from_json | default([]) | combine({'version': ha_version.stdout + '-vaarlion_fix'}) | to_nice_json }}"
+        content: "{{ manifest_json.content | b64decode | from_json | default([]) | combine({'version': ha_version.stdout + '-vaarlion-fix'}) | to_nice_json }}"
