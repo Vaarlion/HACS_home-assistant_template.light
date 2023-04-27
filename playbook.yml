@@ -1,0 +1,96 @@
+- name: "Create a custome integration from ansible based source code"
+  hosts: 127.0.0.1
+  connection: local
+  vars:
+    home_assistant_source_path: "./Home-assistant_core"
+    home_assistant_source_repo: "https://github.com/home-assistant/core.git"
+    home_assistant_source_version: 2023.4.0
+    component_name: "template"
+    component_repo: "git@github.com:Vaarlion/core.git"
+    component_branch: "feature/80449_light_template_RGBWW"
+
+  tasks:
+    - name: Check if current directory is a git repository
+      ansible.builtin.command:
+        cmd: git status
+      register: git_status
+      changed_when: false
+      failed_when: git_status.rc != 0
+      ignore_errors: true
+
+    - name: Create the git repository for the extention
+      ansible.builtin.command:
+       cmd: git init
+      when: git_status.rc != 0
+
+    - name: Create directory structure
+      ansible.builtin.file:
+        dest: ./custom_components
+        state: directory
+        mode: "0755"
+
+    - name: Clone Source repository
+      ansible.builtin.git:
+        repo: '{{ home_assistant_source_repo }}'
+        dest: '{{ home_assistant_source_path }}'
+        version: '{{ home_assistant_source_version }}'
+        remote: "origin"
+
+    - name: list remote
+      ansible.builtin.command:
+        cmd: git remote show
+      args:
+        chdir: "{{ home_assistant_source_path }}"
+      register: git_remote
+      check_mode: false
+      changed_when: false
+
+    - name: Add component remote
+      ansible.builtin.command:
+        cmd: git remote add -f component "{{ component_repo }}"
+      args:
+        chdir: "{{ home_assistant_source_path }}"
+      when: "'component' not in git_remote.stdout_lines"
+
+    - name: Rebase change onto requested version
+      ansible.builtin.shell:
+        cmd: "git cherry-pick $(git log --reverse component/{{ component_branch }} --not $(git for-each-ref --format='%(refname)' refs/heads/ | grep -v 'refs/heads/{{ component_branch }}') --format=%H)"
+      args:
+        chdir: "{{ home_assistant_source_path }}"
+
+    - name: Copy integration from source repository
+      ansible.builtin.copy:
+        src: "{{ home_assistant_source_path }}/homeassistant/components/{{ component_name }}"
+        dest: ./custom_components/
+        remote_src: true
+
+    - name: Get current HA version from dev
+      ansible.builtin.command:
+        cmd: python -c "import toml; version=(toml.load(open('{{ home_assistant_source_path }}/pyproject.toml'))['project']['version']).split('.')[:3];
+          print('{}.{}.{}'.format(version[0] if int(version[1]) > 1 else int(version[0])-1, int(version[1])-1 if int(version[1]) > 1 else 12, 0))"
+      register: ha_version
+      when: "'dev' in home_assistant_source_version"
+      changed_when: false
+
+    - name: Get current HA version from tag
+      ansible.builtin.set_fact:
+        ha_version:
+          stdout: "{{ home_assistant_source_version }}"
+      when: "not 'dev' in home_assistant_source_version"
+      changed_when: false
+
+    - name: Build hacs.json file
+      ansible.builtin.template:
+        src: hacs.json.jinja
+        dest: hacs.json
+        mode: '0644'
+
+    - name: load manifest.json from file
+      slurp:
+        src: ./custom_components/{{ component_name }}/manifest.json
+      register: manifest_json
+
+    - name: Add version to manifest.json
+      ansible.builtin.copy:
+        dest: ./custom_components/{{ component_name }}/manifest.json
+        content: "{{ manifest_json.content | b64decode | from_json | default([]) | combine({'version': ha_version.stdout + '-vaarlion-fix'}) | to_nice_json }}"
