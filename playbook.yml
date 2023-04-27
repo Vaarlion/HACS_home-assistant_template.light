@@ -94,3 +94,11 @@
       ansible.builtin.copy:
         dest: ./custom_components/{{ component_name }}/manifest.json
         content: "{{ manifest_json.content | b64decode | from_json | default([]) | combine({'version': ha_version.stdout + '-vaarlion-fix'}) | to_nice_json }}"
+
+    - name: Commit change as a release
+      ansible.builtin.shell:
+        cmd: 'git add hacs.json && git add custom_components/. && git commit -m "release: Rebased for home assistant {{ home_assistant_source_version }}"'
+
+    - name: Create tags
+      ansible.builtin.shell:
+        cmd: 'git tag -a {{ home_assistant_source_version }}v1 -m "Rebased for home assistant {{ home_assistant_source_version }} release"'
