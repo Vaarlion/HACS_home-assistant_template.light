@@ -13,6 +13,31 @@ This can be used to template RGB(WW) light composed of multiple entity into a si
 From https://github.com/home-assistant/core/pull/86047 and https://github.com/home-assistant/home-assistant.io/pull/25994.
 Since the MR to fix this are stale and haven't been merged, i made this HACS repo to share it with other.
 
+## How to build
+To build this components, first make sure that the source branch have been rebased on the version you wish to build for.
+If breaking change happened and you want to build for an older version, you may need to edit the playbook to point it to a fork with a branch at the latest compatible commit.
+
+Then make a python virtual env to install the requirement file, and get inside
+```bash
+python3 -m venv ./venv
+source venv/bin/activate
+```
+Install the required pip pkgs.
+```bash
+pip install -r requirements.txt
+```
+Now, you can set the `home_assistant_source_version` variable to the home assistant release you wish to target.
+You can do so in the playbook.yml, or any other way supported by ansible.
+
+Build the components with `ansible-playbook playbook.yml`.
+Test it, it is found in the `custom_components` folder.
+Then push the change and the created tags.
+```bash
+git push
+git push origin 202X.X.XvX
+```
+Don't forget to create a release from the github page.
+
 ## Documentation update
 
 The `template` platform creates lights that combine integrations and provides the

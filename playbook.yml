@@ -4,10 +4,12 @@
   vars:
     home_assistant_source_path: "./Home-assistant_core"
     home_assistant_source_repo: "https://github.com/home-assistant/core.git"
-    home_assistant_source_version: 2023.4.6
+    home_assistant_source_version: 2023.7.3
     component_name: "template"
     component_repo: "git@github.com:Vaarlion/core.git"
     component_branch: "feature/80449_light_template_RGBWW"
+    componant_test_list:
+      - test_light.py
 
   tasks:
     - name: Check if current directory is a git repository
@@ -57,6 +59,12 @@
         cmd: "git cherry-pick $(git log --reverse component/{{ component_branch }} --not $(git for-each-ref --format='%(refname)' refs/heads/ | grep -v 'refs/heads/{{ component_branch }}') --format=%H)"
       args:
         chdir: "{{ home_assistant_source_path }}"
+
+    - name: Test integration
+      ansible.builtin.command:
+        cmd: "pytest {{ home_assistant_source_path }}/tests/components/{{ component_name }}/{{ item }}"
+      loop: "{{ componant_test_list }}"
+      when: componant_test_enabled | d(false)
 
     - name: Copy integration from source repository
       ansible.builtin.copy:
