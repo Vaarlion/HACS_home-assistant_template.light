@@ -331,8 +331,9 @@ class LightTemplate(TemplateEntity, LightEntity):
         """Return true if device is on."""
         return self._state
 
-    async def async_added_to_hass(self) -> None:
-        """Register callbacks."""
+    @callback
+    def _async_setup_templates(self) -> None:
+        """Set up templates."""
         if self._template:
             self.add_template_attribute(
                 "_state", self._template, None, self._update_state
@@ -433,7 +434,7 @@ class LightTemplate(TemplateEntity, LightEntity):
                 self._update_supports_transition,
                 none_on_template_error=True,
             )
-        await super().async_added_to_hass()
+        super()._async_setup_templates()
 
     async def async_turn_on(self, **kwargs: Any) -> None:  # noqa: C901
         """Turn the light on."""
@@ -676,9 +677,8 @@ class LightTemplate(TemplateEntity, LightEntity):
                 )
                 self._brightness = None
         except ValueError:
-            _LOGGER.error(
-                "Template must supply an integer brightness from 0-255, or 'None'",
-                exc_info=True,
+            _LOGGER.exception(
+                "Template must supply an integer brightness from 0-255, or 'None'"
             )
             self._brightness = None
 
@@ -776,12 +776,9 @@ class LightTemplate(TemplateEntity, LightEntity):
                 )
                 self._temperature = None
         except ValueError:
-            _LOGGER.error(
-                (
-                    "Template must supply an integer temperature within the range for"
-                    " this light, or 'None'"
-                ),
-                exc_info=True,
+            _LOGGER.exception(
+                "Template must supply an integer temperature within the range for"
+                " this light, or 'None'"
             )
             self._temperature = None
         self._color_mode = ColorMode.COLOR_TEMP
@@ -979,12 +976,9 @@ class LightTemplate(TemplateEntity, LightEntity):
                 return
             self._max_mireds = int(render)
         except ValueError:
-            _LOGGER.error(
-                (
-                    "Template must supply an integer temperature within the range for"
-                    " this light, or 'None'"
-                ),
-                exc_info=True,
+            _LOGGER.exception(
+                "Template must supply an integer temperature within the range for"
+                " this light, or 'None'"
             )
             self._max_mireds = None
 
@@ -997,12 +991,9 @@ class LightTemplate(TemplateEntity, LightEntity):
                 return
             self._min_mireds = int(render)
         except ValueError:
-            _LOGGER.error(
-                (
-                    "Template must supply an integer temperature within the range for"
-                    " this light, or 'None'"
-                ),
-                exc_info=True,
+            _LOGGER.exception(
+                "Template must supply an integer temperature within the range for"
+                " this light, or 'None'"
             )
             self._min_mireds = None
 
