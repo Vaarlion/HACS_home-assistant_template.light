@@ -4,7 +4,7 @@
   vars:
     home_assistant_source_path: "./Home-assistant_core"
     home_assistant_source_repo: "https://github.com/home-assistant/core.git"
-    home_assistant_source_version: 2023.9.3
+    home_assistant_source_version: 2023.10.5
     component_name: "template"
     component_repo: "git@github.com:Vaarlion/core.git"
     component_branch: "feature/80449_light_template_RGBWW"

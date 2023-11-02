@@ -249,6 +249,12 @@ class LightTemplate(TemplateEntity, LightEntity):
         if len(self._supported_color_modes) == 1:
             self._color_mode = next(iter(self._supported_color_modes))
 
+        self._attr_supported_features = LightEntityFeature(0)
+        if self._effect_script is not None:
+            self._attr_supported_features |= LightEntityFeature.EFFECT
+        if self._supports_transition is True:
+            self._attr_supported_features |= LightEntityFeature.TRANSITION
+
     @property
     def brightness(self) -> int | None:
         """Return the brightness of the light."""
@@ -315,16 +321,6 @@ class LightTemplate(TemplateEntity, LightEntity):
     def supported_color_modes(self):
         """Flag supported color modes."""
         return self._supported_color_modes
-
-    @property
-    def supported_features(self) -> LightEntityFeature:
-        """Flag supported features."""
-        supported_features = LightEntityFeature(0)
-        if self._effect_script is not None:
-            supported_features |= LightEntityFeature.EFFECT
-        if self._supports_transition is True:
-            supported_features |= LightEntityFeature.TRANSITION
-        return supported_features
 
     @property
     def is_on(self) -> bool | None:
@@ -1003,4 +999,7 @@ class LightTemplate(TemplateEntity, LightEntity):
         if render in (None, "None", ""):
             self._supports_transition = False
             return
+        self._attr_supported_features &= LightEntityFeature.EFFECT
         self._supports_transition = bool(render)
+        if self._supports_transition:
+            self._attr_supported_features |= LightEntityFeature.TRANSITION
